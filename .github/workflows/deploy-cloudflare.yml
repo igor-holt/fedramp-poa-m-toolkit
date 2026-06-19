@@ -1,0 +1,40 @@
+name: Deploy to Cloudflare Pages + Worker (DTS Telemetry)
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'web/**'
+      - 'python/telemetry/**'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy Next.js to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          command: pages deploy web --project-name=fedramp-poa-m-toolkit --branch=main
+
+      - name: Deploy DTS Telemetry Worker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          command: deploy --config cloudflare/dts-worker/wrangler.toml
+
+      - name: Add deployment comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '✅ Deployed to Cloudflare Pages + DTS Worker'
+            })
