@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import * as XLSX from 'xlsx';
+import { Loader2, Plus, Download, Trash2 } from 'lucide-react';
 
 interface POAMItem {
   poamId: string;
@@ -19,6 +20,9 @@ interface POAMItem {
 
 export default function FedRAMPPOAMBuilder() {
   const [items, setItems] = useState<POAMItem[]>([]);
+  const [isAdding, setIsAdding] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+
   const [formData, setFormData] = useState({
     poamId: 'VS-001',
     controls: 'RA-5, SC-13',
@@ -39,9 +43,14 @@ export default function FedRAMPPOAMBuilder() {
     return date.toISOString().split('T')[0];
   };
 
-  const addItem = (e: React.FormEvent) => {
+  const addItem = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.weaknessName || !formData.weaknessDesc) return;
+
+    setIsAdding(true);
+
+    // Simulate slight processing delay for better UX
+    await new Promise(resolve => setTimeout(resolve, 180));
 
     const scheduledDate = calculateScheduledDate(formData.detectionDate, formData.riskRating);
 
@@ -50,9 +59,8 @@ export default function FedRAMPPOAMBuilder() {
       scheduledDate,
     };
 
-    setItems([...items, newItem]);
+    setItems(prev => [...prev, newItem]);
     
-    // Reset form with incremented ID
     setFormData({
       ...formData,
       poamId: `VS-${String(items.length + 2).padStart(3, '0')}`,
@@ -61,17 +69,23 @@ export default function FedRAMPPOAMBuilder() {
       assetId: '',
       remediationPlan: '',
     });
+
+    setIsAdding(false);
   };
 
   const removeItem = (index: number) => {
     setItems(items.filter((_, i) => i !== index));
   };
 
-  const exportToExcel = () => {
+  const exportToExcel = async () => {
     if (items.length === 0) {
       alert('Add at least one item before exporting');
       return;
     }
+
+    setIsExporting(true);
+
+    await new Promise(resolve => setTimeout(resolve, 250));
 
     const wb = XLSX.utils.book_new();
     const wsData = [
@@ -93,29 +107,48 @@ export default function FedRAMPPOAMBuilder() {
     const ws = XLSX.utils.aoa_to_sheet(wsData);
     XLSX.utils.book_append_sheet(wb, ws, 'POA&M Items');
     XLSX.writeFile(wb, `FedRAMP-POAM-${new Date().toISOString().slice(0,10)}.xlsx`);
+
+    setIsExporting(false);
+  };
+
+  const getRiskColor = (risk: string) => {
+    if (risk === 'Critical' || risk === 'High') return 'bg-red-100 text-red-700';
+    if (risk === 'Moderate') return 'bg-orange-100 text-orange-700';
+    return 'bg-emerald-100 text-emerald-700';
   };
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <nav className="bg-white border-b">
-        <div className="max-w-7xl mx-auto px-6 flex items-center justify-between h-16">
+      {/* Navbar */}
+      <nav className="bg-white border-b sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 flex items-center justify-between h-16">
           <div className="flex items-center gap-x-3">
             <div className="w-8 h-8 bg-[#0A2540] rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-sm">FR</span>
             </div>
-            <span className="font-semibold text-xl tracking-tight">FedRAMP POA&M Builder</span>
-            <span className="text-xs px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full">Next.js</span>
+            <div>
+              <span className="font-semibold text-xl tracking-tight">FedRAMP POA&M</span>
+              <span className="hidden sm:inline text-sm text-slate-500 ml-1">Builder</span>
+            </div>
+            <span className="text-[10px] px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full font-medium">Next.js</span>
           </div>
-          <div className="flex items-center gap-x-3">
+
+          <div className="flex items-center gap-x-2 sm:gap-x-3">
             <button 
               onClick={exportToExcel}
-              className="px-5 py-2 bg-emerald-600 text-white rounded-2xl text-sm font-medium flex items-center gap-x-2 hover:bg-emerald-700"
+              disabled={isExporting || items.length === 0}
+              className="flex items-center gap-x-2 px-4 sm:px-5 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white rounded-2xl text-sm font-medium transition-all active:scale-[0.985]"
             >
-              <span>Export to Excel</span>
+              {isExporting ? (
+                <><Loader2 className="w-4 h-4 animate-spin" /> Exporting...</>
+              ) : (
+                <><Download className="w-4 h-4" /> <span className="hidden sm:inline">Export</span></>
+              )}
             </button>
+            
             <a 
               href="https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Figor-holt%2Ffedramp-poa-m-toolkit&root-directory=web" 
-              className="px-4 py-2 text-sm border rounded-2xl hover:bg-white"
+              className="px-4 py-2 text-sm border rounded-2xl hover:bg-white transition-colors"
             >
               Deploy
             </a>
@@ -123,116 +156,137 @@ export default function FedRAMPPOAMBuilder() {
         </div>
       </nav>
 
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+        <div className="mb-6">
+          <h1 className="text-3xl sm:text-4xl font-semibold tracking-tighter">POA&M Builder</h1>
+          <p className="text-slate-600 mt-1 text-sm sm:text-base">Create and export FedRAMP-compliant Plan of Action & Milestones</p>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 lg:gap-8">
           {/* Form */}
-          <div className="lg:col-span-2 bg-white rounded-3xl border p-7">
-            <h2 className="font-semibold text-lg mb-5">Add POA&M Item</h2>
+          <div className="lg:col-span-2 bg-white rounded-3xl border p-6 sm:p-7">
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="font-semibold text-lg">Add New Item</h2>
+            </div>
             
             <form onSubmit={addItem} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="text-xs font-medium text-slate-600">POAM ID</label>
+                  <label className="text-xs font-medium text-slate-600 block mb-1.5">POAM ID</label>
                   <input 
                     type="text" 
                     value={formData.poamId}
                     onChange={(e) => setFormData({...formData, poamId: e.target.value})}
-                    className="w-full mt-1 px-4 py-2 border rounded-2xl text-sm" 
+                    className="w-full px-4 py-2.5 border border-slate-300 rounded-2xl text-sm focus:outline-none focus:border-[#0A2540]" 
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-medium text-slate-600">Risk Rating</label>
+                  <label className="text-xs font-medium text-slate-600 block mb-1.5">Risk Rating</label>
                   <select 
                     value={formData.riskRating}
                     onChange={(e) => setFormData({...formData, riskRating: e.target.value as any})}
-                    className="w-full mt-1 px-4 py-2 border rounded-2xl text-sm bg-white"
+                    className="w-full px-4 py-2.5 border border-slate-300 rounded-2xl text-sm bg-white focus:outline-none focus:border-[#0A2540]"
                   >
-                    <option value="Critical">Critical</option>
-                    <option value="High">High</option>
-                    <option value="Moderate">Moderate</option>
-                    <option value="Low">Low</option>
+                    <option value="Critical">Critical (30 days)</option>
+                    <option value="High">High (30 days)</option>
+                    <option value="Moderate">Moderate (90 days)</option>
+                    <option value="Low">Low (180 days)</option>
                   </select>
                 </div>
               </div>
 
               <div>
-                <label className="text-xs font-medium text-slate-600">Weakness Name</label>
+                <label className="text-xs font-medium text-slate-600 block mb-1.5">Weakness Name</label>
                 <input 
                   type="text" 
                   value={formData.weaknessName}
                   onChange={(e) => setFormData({...formData, weaknessName: e.target.value})}
-                  className="w-full mt-1 px-4 py-2 border rounded-2xl text-sm" 
+                  className="w-full px-4 py-2.5 border border-slate-300 rounded-2xl text-sm focus:outline-none focus:border-[#0A2540]" 
+                  placeholder="e.g. Unsupported Python version"
                   required 
                 />
               </div>
 
               <div>
-                <label className="text-xs font-medium text-slate-600">Description</label>
+                <label className="text-xs font-medium text-slate-600 block mb-1.5">Description</label>
                 <textarea 
                   value={formData.weaknessDesc}
                   onChange={(e) => setFormData({...formData, weaknessDesc: e.target.value})}
-                  className="w-full mt-1 px-4 py-2 border rounded-3xl text-sm h-20" 
+                  className="w-full px-4 py-2.5 border border-slate-300 rounded-3xl text-sm h-24 focus:outline-none focus:border-[#0A2540]" 
+                  placeholder="Describe the weakness or finding..."
                   required 
                 />
               </div>
 
               <button 
                 type="submit"
-                className="w-full py-3 bg-[#0A2540] text-white rounded-3xl font-semibold text-sm tracking-wider mt-2"
+                disabled={isAdding}
+                className="w-full flex items-center justify-center gap-x-2 py-3.5 bg-[#0A2540] hover:bg-black active:bg-slate-950 disabled:bg-slate-400 text-white rounded-3xl font-semibold text-sm tracking-wider transition-all mt-2"
               >
-                ADD TO POA&M
+                {isAdding ? (
+                  <><Loader2 className="w-4 h-4 animate-spin" /> Adding...</>
+                ) : (
+                  <><Plus className="w-4 h-4" /> Add to POA&M</>
+                )}
               </button>
             </form>
           </div>
 
-          {/* Table */}
-          <div className="lg:col-span-3 bg-white rounded-3xl border overflow-hidden">
-            <div className="px-7 py-5 border-b flex items-center justify-between">
-              <div className="font-semibold">Current Items ({items.length})</div>
-              <button 
-                onClick={() => setItems([])}
-                className="text-xs text-red-500 hover:text-red-600"
-              >Clear All</button>
+          {/* Items Table */}
+          <div className="lg:col-span-3 bg-white rounded-3xl border overflow-hidden flex flex-col">
+            <div className="px-6 py-4 border-b flex items-center justify-between bg-white">
+              <div className="font-semibold flex items-center gap-x-2">
+                Current Items
+                <span className="text-xs px-2.5 py-0.5 bg-slate-100 text-slate-600 rounded-full font-mono">{items.length}</span>
+              </div>
+              {items.length > 0 && (
+                <button 
+                  onClick={() => setItems([])}
+                  className="flex items-center gap-x-1.5 text-xs text-red-500 hover:text-red-600 px-3 py-1.5 rounded-xl hover:bg-red-50 transition-colors"
+                >
+                  <Trash2 className="w-3.5 h-3.5" /> Clear
+                </button>
+              )}
             </div>
-            
-            <div className="overflow-auto max-h-[500px]">
-              <table className="w-full text-sm">
-                <thead className="bg-slate-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left font-medium text-xs">ID</th>
-                    <th className="px-6 py-3 text-left font-medium text-xs">Weakness</th>
-                    <th className="px-6 py-3 text-left font-medium text-xs">Risk</th>
-                    <th className="px-6 py-3 text-left font-medium text-xs">Scheduled</th>
-                    <th className="w-10"></th>
+
+            <div className="overflow-x-auto flex-1">
+              <table className="w-full text-sm min-w-[640px]">
+                <thead className="bg-slate-50 sticky top-0">
+                  <tr className="text-xs text-slate-500">
+                    <th className="px-6 py-3 text-left font-medium">ID</th>
+                    <th className="px-6 py-3 text-left font-medium">Weakness</th>
+                    <th className="px-6 py-3 text-left font-medium w-24">Risk</th>
+                    <th className="px-6 py-3 text-left font-medium">Scheduled</th>
+                    <th className="w-12"></th>
                   </tr>
                 </thead>
-                <tbody className="divide-y">
+                <tbody className="divide-y text-sm">
                   {items.length === 0 && (
                     <tr>
-                      <td colSpan={5} className="px-6 py-12 text-center text-slate-400 text-xs">
-                        No items yet. Add your first finding using the form.
+                      <td colSpan={5} className="px-6 py-16 text-center">
+                        <div className="text-slate-400 text-sm">No items added yet.<br />Use the form on the left to start building your POA&M.</div>
                       </td>
                     </tr>
                   )}
                   {items.map((item, index) => (
-                    <tr key={index} className="hover:bg-slate-50">
-                      <td className="px-6 py-4 font-mono text-xs text-blue-700">{item.poamId}</td>
+                    <tr key={index} className="hover:bg-slate-50/80 transition-colors">
+                      <td className="px-6 py-4 font-mono text-xs text-blue-700 whitespace-nowrap">{item.poamId}</td>
                       <td className="px-6 py-4">
-                        <div className="font-medium text-sm line-clamp-1">{item.weaknessName}</div>
-                        <div className="text-xs text-slate-500 line-clamp-1">{item.controls}</div>
+                        <div className="font-medium pr-2 line-clamp-2">{item.weaknessName}</div>
+                        <div className="text-[11px] text-slate-500 mt-0.5 line-clamp-1">{item.controls}</div>
                       </td>
                       <td className="px-6 py-4">
-                        <span className={`text-xs px-2.5 py-0.5 rounded-full font-medium ${
-                          item.riskRating === 'Critical' || item.riskRating === 'High' ? 'bg-red-100 text-red-700' : 
-                          item.riskRating === 'Moderate' ? 'bg-orange-100 text-orange-700' : 'bg-emerald-100 text-emerald-700'
-                        }`}>
+                        <span className={`inline-block text-xs px-3 py-1 rounded-full font-medium ${getRiskColor(item.riskRating)}`}>
                           {item.riskRating}
                         </span>
                       </td>
-                      <td className="px-6 py-4 font-mono text-xs text-slate-600">{item.scheduledDate}</td>
-                      <td className="px-4 py-4">
-                        <button onClick={() => removeItem(index)} className="text-red-400 hover:text-red-600">
-                          <i className="fa-solid fa-times"></i>
+                      <td className="px-6 py-4 font-mono text-xs text-slate-600 whitespace-nowrap">{item.scheduledDate}</td>
+                      <td className="px-4 py-4 text-right">
+                        <button 
+                          onClick={() => removeItem(index)}
+                          className="text-red-400 hover:text-red-600 p-2 -mr-2 rounded-xl hover:bg-red-50 transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
                         </button>
                       </td>
                     </tr>
@@ -240,6 +294,13 @@ export default function FedRAMPPOAMBuilder() {
                 </tbody>
               </table>
             </div>
+
+            {items.length > 0 && (
+              <div className="px-6 py-3 border-t bg-slate-50 text-[11px] text-slate-500 flex items-center justify-between">
+                <div>Auto-calculated remediation timelines applied</div>
+                <div className="font-mono">{items.length} item{items.length !== 1 ? 's' : ''}</div>
+              </div>
+            )}
           </div>
         </div>
       </div>
