@@ -25,7 +25,7 @@ jobs:
       - run: npm run lint --if-present
 
   python:
-    name: Python + DTS Telemetry
+    name: Python + DTS Telemetry + Schema Validation
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -34,27 +34,26 @@ jobs:
           python-version: '3.12'
       - name: Install dependencies
         run: |
-          pip install openpyxl xlsx pandas pycodestyle
-      - name: Run PEP 8 check on generator
-        run: pycodestyle --max-line-length=88 python/generate_fedramp_poa_m.py || true
+          pip install openpyxl xlsx pandas pydantic pycodestyle
+      - name: Run PEP 8 check
+        run: pycodestyle --max-line-length=88 python/generate_fedramp_poa_m.py python/schemas/a2a_skill_registry.py || true
       - name: Test DTS Telemetry
         run: python python/telemetry/dts_telemetry.py
-
-  registry:
-    name: A2A Skill Registry Validation
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-      - name: Validate Registry Structure
+      - name: Validate A2A Skill Registry Schema
         run: |
           python -c """
-          import pandas as pd
-          df = pd.read_excel('FedRAMP_GenesisConductor_A2A_Skill_Registry.xlsx', sheet_name='Skills_Catalog')
-          print('Registry columns:', list(df.columns))
-          print('Skills found:', len(df))
-          assert 'DTS' in df.columns or True
-          print('Registry validation passed')
+          from python.schemas.a2a_skill_registry import A2ASkillRegistry, A2ASkill, DeploymentPriority, IntegrationLevel
+          registry = A2ASkillRegistry()
+          skill = A2ASkill(
+              skill_id='TEST-001',
+              skill_name='Test Skill',
+              category='Test',
+              description='Schema validation test',
+              vpd_score=85.0,
+              thermodynamic_yield=0.90,
+              deployment_priority=DeploymentPriority.HIGH,
+              genesis_conductor_integration=IntegrationLevel.HIGH
+          )
+          registry.add_skill(skill)
+          print('Schema validation passed. DTS computed:', skill.dts_score)
           """
