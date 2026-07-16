@@ -1,18 +1,28 @@
-# Diamondnode / Genesis Conductor FedRAMP Compliance Artifacts
+# Diamondnode / Genesis Conductor FedRAMP Compliance Package
 
-**Generated:** 2026-07-16
+**Last updated:** 2026-07-16
 
-## Contents
-- `Diamondnode_SSP_FrontMatter_Population_20260716.md` — Values for SSP Sections 1–12
-- `Appendix_A_Control_Narratives_Draft_AU_CA_CM_IA_SC_SI_IR.md` — Priority control narratives
-- POA&M multi-sheet workbook (see Google Drive Thermo CDI folder for latest .xlsx with IIW Inventory sheet)
+## Core Artifacts (see Google Drive Thermo CDI / Diamondnode folder for full binaries)
+
+### Plans
+- `Diamondnode_ISCP_v0.1_20260716.md` — Information System Contingency Plan
+- `Diamondnode_CMP_v0.1_20260716.md` — Configuration Management Plan
+- `Diamondnode_IRP_v0.1_20260716.md` — Incident Response Plan
+- `Diamondnode_3PAO_Readiness_Checklist_20260716.md` — 3PAO readiness tracker
+
+### Previously pushed
+- SSP Front-Matter draft
+- Appendix A control narratives (all families)
+- ISCP/CMP/IRP stubs (superseded by v0.1 full drafts)
+
+### Drive-only (xlsx / png)
+- POA&M + IIW Inventory
+- Official-style IIW (Components / Network / Software)
+- CIS / CRM Workbook
+- Authorization Boundary Diagram
 
 ## Hard Invariants
-- ENG-4096-50W (4096 MiB VRAM + 50 W)
-- Tj_max = 89.6 °C
-- Bare-metal power bounding before any agent code
-- λ_lock (Ed25519)
-- dryRunFirst + halt_and_capsule
+ENG-4096-50W • Tj_max = 89.6 °C • Bare-metal power bounding • λ_lock • dryRunFirst + halt_and_capsule
 
-## Drive Location
-Thermo CDI / Genesis Conductor Diamondnode Thermo CDI folder (evt-20260716 series).
+## Status
+Package is coherent and suitable for informal 3PAO readiness discussions. High findings (logging, secrets) and policy/training items remain on the critical path before formal assessment.
