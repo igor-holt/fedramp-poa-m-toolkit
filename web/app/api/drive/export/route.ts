@@ -1,8 +1,21 @@
 import { google } from "googleapis"
-import { auth } from "@/app/api/auth/[...nextauth]/route"
+import { auth } from "@/lib/auth"
+import { verifyLicense } from "@/lib/billing"
 import { Readable } from "stream"
 
 export async function POST(request: Request) {
+  const license = request.headers.get("x-license")
+  if (!license) {
+    return Response.json({ error: "Pro license required", code: "license-missing" }, { status: 402 })
+  }
+  const verification = await verifyLicense(license)
+  if (!verification.valid) {
+    return Response.json(
+      { error: "Pro license required", code: verification.reason || "license-invalid" },
+      { status: 402 }
+    )
+  }
+
   const session = await auth()
   // @ts-ignore
   const accessToken = (session as any)?.accessToken
