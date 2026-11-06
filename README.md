@@ -27,9 +27,23 @@ See [`web/`](./web) and [`OAUTH_SETUP.md`](./OAUTH_SETUP.md) for the full versio
 
 - Interactive POA&M Builder with live table and export
 - Python generator for high-fidelity templates
-- Google Drive integration (Next.js version)
+- Google Drive integration (Next.js version, Pro-gated)
 - Genesis Conductor evt- event emission support
 - Full documentation for FedRAMP compliance workflows
+
+## Pricing
+
+The toolkit has a free tier and paid tiers monetized through Stripe:
+
+| Tier | Price | Includes |
+|---|---|---|
+| Free | $0 | POA&M builder, up to 10 items, Excel export |
+| Pro | $49/mo | Unlimited items, OSCAL export, Google Drive export |
+| Enterprise | $299/mo | Pro + SSP generator, team workspaces, audit trail |
+
+- Next.js version: `/pricing` page with Stripe Checkout + license tokens (`web/app/api/billing/*`)
+- Static version: Stripe Payment Links via `billing-config.js` (see `billing-config.example.js`)
+- Full setup runbook: [MONETIZATION.md](./MONETIZATION.md)
 
 ## Deployment
 
